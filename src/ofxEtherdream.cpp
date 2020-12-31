@@ -4,18 +4,18 @@
 void ofxEtherdream::setup(bool bStartThread, int idEtherdream) {
 
     idEtherdreamConnection = idEtherdream;
-    
+
     etherdream_lib_start();
-    
+
     setPPS(30000);
     setWaitBeforeSend(false);
-    
+
 	/* Sleep for a bit over a second, to ensure that we see broadcasts
 	 * from all available DACs. */
 	usleep(1000000);
-    
+
     init();
-    
+
     if(bStartThread) start();
 }
 
@@ -28,12 +28,12 @@ bool ofxEtherdream::stateIsFound() {
 //--------------------------------------------------------------
 bool ofxEtherdream::checkConnection(bool bForceReconnect) {
     if(device->state == ST_SHUTDOWN || device->state == ST_BROKEN || device->state == ST_DISCONNECTED) {
-        
+
         if(bForceReconnect) {
             kill();
             setup(true, idEtherdreamConnection);
         }
-        
+
         return false;
     }
     return true;
@@ -46,32 +46,32 @@ void ofxEtherdream::init() {
 		ofLogWarning() << "ofxEtherdream::init - No DACs found";
 		return;
 	}
-    
+
 	for (int i=0; i<device_num; i++) {
 		ofLogNotice() << "ofxEtherdream::init - " << i << " Ether Dream " << etherdream_get_id(etherdream_get(i));
     }
-    
+
     device = etherdream_get(idEtherdreamConnection);
-    
+
     ofLogNotice() << "ofxEtherdream::init - Connecting...";
     if (etherdream_connect(device) < 0){
         return;
     }
 
     ofLogNotice() << "ofxEtherdream::init - done";
-    
+
     state = ETHERDREAM_FOUND;
 }
 
 //--------------------------------------------------------------
 void ofxEtherdream::threadedFunction() {
     while (isThreadRunning() != 0) {
-        
+
         switch (state) {
             case ETHERDREAM_NOTFOUND:
                 if(bAutoConnect) init();
                 break;
-                
+
             case ETHERDREAM_FOUND:
                 if(lock()) {
                     send();
@@ -84,7 +84,7 @@ void ofxEtherdream::threadedFunction() {
 
 //--------------------------------------------------------------
 void ofxEtherdream::start() {
-    startThread(true, false);  // TODO: blocking or nonblocking?
+    startThread(); 
 }
 
 //--------------------------------------------------------------
@@ -95,10 +95,10 @@ void ofxEtherdream::stop() {
 //--------------------------------------------------------------
 void ofxEtherdream::send() {
     if(!stateIsFound() || points.empty()) return;
-    
+
     if(bWaitBeforeSend) etherdream_wait_for_ready(device);
     else if(!etherdream_is_ready(device)) return;
-    
+
     // DODGY HACK: casting ofxIlda::Point* to etherdream_point*
     int res = etherdream_write(device, (etherdream_point*)points.data(), points.size(), pps, 1);
     if (res != 0) {
